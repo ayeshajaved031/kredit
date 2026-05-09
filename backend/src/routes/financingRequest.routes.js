@@ -34,13 +34,22 @@ const router = express.Router();
 router.use(authenticate);
 
 // Startup-only — submit
+// Startup-only — submit
 router.post(
   "/",
   requireRole("startup"),
   sensitiveLimiter,
-  // Multer runs FIRST so multipart fields populate req.body for the validator.
-  // single("invoice") expects exactly one file under field name "invoice".
   vendorInvoiceUploader.single("invoice"),
+  (req, res, next) => {
+    // Frontend sends planName and planTier separately — build subscriptionDetails
+    if (!req.body.subscriptionDetails && req.body.planName) {
+      req.body.subscriptionDetails = JSON.stringify({
+        planName: req.body.planName,
+        planTier: req.body.planTier,
+      });
+    }
+    next();
+  },
   validate(financingRequestValidation.submitRequest),
   financingRequestController.submit
 );
