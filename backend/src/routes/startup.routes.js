@@ -35,12 +35,7 @@ router.get("/me/kyc-status", startupController.getKycStatus);
 // named field. We allow all four document types in the same form.
 router.post(
   "/me/kyc-documents",
-  kycUploader.fields([
-    { name: "ntnCertificate", maxCount: 1 },
-    { name: "secpCertificate", maxCount: 1 },
-    { name: "bankStatement", maxCount: 1 },
-    { name: "utilityBill", maxCount: 1 },
-  ]),
+  kycUploader.single("file"),
   startupController.uploadKycDocuments
 );
 
