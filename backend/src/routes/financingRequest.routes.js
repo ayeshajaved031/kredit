@@ -39,8 +39,8 @@ router.post(
   requireRole("startup"),
   sensitiveLimiter,
   // Multer runs FIRST so multipart fields populate req.body for the validator.
-  // single("vendorInvoice") expects exactly one file under field name "vendorInvoice".
-  vendorInvoiceUploader.single("vendorInvoice"),
+  // single("invoice") expects exactly one file under field name "invoice".
+  vendorInvoiceUploader.single("invoice"),
   validate(financingRequestValidation.submitRequest),
   financingRequestController.submit
 );
