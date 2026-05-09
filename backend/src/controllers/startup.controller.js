@@ -69,9 +69,8 @@ const updateMyStartup = asyncHandler(async (req, res) => {
 // ==============================================================
 // POST /api/startup/me/kyc-documents
 // --------------------------------------------------------------
-// Multipart upload for KYC documents. Frontend sends one or more
-// of:  ntnCertificate, secpCertificate, bankStatement, utilityBill
-// (each a single file).
+// Multipart upload for KYC documents. Frontend sends one file at
+// a time with a documentType field indicating which document it is.
 //
 // On first submission, kycStatus flips to "under_review" so admin
 // sees it in the queue.
@@ -80,22 +79,20 @@ const uploadKycDocuments = asyncHandler(async (req, res) => {
   const startup = await Startup.findOne({ userId: req.user._id });
   if (!startup) throw new AppError("Startup profile not found", 404);
 
-  // multer's `.fields()` populates req.files as an object:
-  //   { ntnCertificate: [File], bankStatement: [File], ... }
-  const files = req.files || {};
-  const uploaded = {};
-
-  for (const key of ["ntnCertificate", "secpCertificate", "bankStatement", "utilityBill"]) {
-    if (files[key] && files[key][0]) {
-      const url = publicUrlFor(req, files[key][0].path);
-      startup.documents[key] = url;
-      uploaded[key] = url;
-    }
-  }
-
-  if (Object.keys(uploaded).length === 0) {
+  if (!req.file) {
     throw new AppError("At least one document must be uploaded", 400);
   }
+
+  const docType = req.body.documentType;
+  const allowedTypes = ["ntnCertificate", "secpCertificate", "bankStatement", "utilityBill", "incorporation", "ownerCnic"];
+
+  if (!docType || !allowedTypes.includes(docType)) {
+    throw new AppError("Invalid document type", 400);
+  }
+
+  const url = publicUrlFor(req, req.file.path);
+  startup.documents[docType] = url;
+  const uploaded = { [docType]: url };
 
   // Flip status to under_review if not already verified
   if (startup.kycStatus === "unverified" || startup.kycStatus === "rejected") {
@@ -132,7 +129,6 @@ const uploadKycDocuments = asyncHandler(async (req, res) => {
     },
   });
 });
-
 // ==============================================================
 // GET /api/startup/me/kyc-status
 // --------------------------------------------------------------
