@@ -1,0 +1,127 @@
+/* ==============================================================
+   Global stylesheet — Kredit
+   --------------------------------------------------------------
+   Loaded once from main.jsx. Includes:
+     1. Tailwind base/components/utilities
+     2. Variable fonts (Inter Tight + JetBrains Mono)
+     3. Element resets that Tailwind preflight doesn't cover
+     4. Custom scrollbar styling for the dark theme
+   ============================================================== */
+
+/* Variable fonts — full weight range from a single file each */
+@import "@fontsource-variable/inter-tight";
+@import "@fontsource-variable/jetbrains-mono";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---- Base ---- */
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  font-family: theme("fontFamily.sans");
+  font-feature-settings: "ss01", "cv11"; /* Inter Tight ligatures + alt 1 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: theme("colors.bg");
+  color: theme("colors.ink");
+}
+
+/* Mono font for any element with .font-mono — Tailwind handles the class,
+   but we also default tabular-nums so columns of currency align. */
+.font-mono {
+  font-feature-settings: "tnum", "zero";
+  font-variant-numeric: tabular-nums slashed-zero;
+}
+
+/* Selection — lavender so it pops on the dark bg */
+::selection {
+  background: rgba(177, 151, 252, 0.3);
+  color: #F5F7FA;
+}
+
+/* ---- Form element resets ----
+   We restyle inputs in the Input component, but make sure browser
+   defaults don't bleed through (autofill yellows, focus rings). */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-text-fill-color: theme("colors.ink");
+  -webkit-box-shadow: 0 0 0 30px theme("colors.surface") inset !important;
+  caret-color: theme("colors.ink");
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* ---- Scrollbars ----
+   Slim, dark, lime-on-hover. Browsers vary; target both. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: theme("colors.divider") transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: theme("colors.divider");
+  border-radius: 999px;
+  border: 2px solid theme("colors.bg");
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: theme("colors.ink-faint");
+}
+
+/* ---- Utilities ----
+   Custom helpers used across pages */
+
+/* Subtle radial glow used on the landing hero. Apply with class="glow-lime" etc.
+   The element it's on must have position: relative and overflow: hidden. */
+.glow-lime::before,
+.glow-lavender::before {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  border-radius: 50%;
+  filter: blur(40px);
+}
+.glow-lime::before {
+  width: 480px;
+  height: 480px;
+  top: -120px;
+  left: -80px;
+  background: radial-gradient(circle, rgba(198, 255, 59, 0.10) 0%, rgba(198, 255, 59, 0) 65%);
+}
+.glow-lavender::before {
+  width: 400px;
+  height: 400px;
+  top: 60px;
+  right: -100px;
+  left: auto;
+  background: radial-gradient(circle, rgba(177, 151, 252, 0.08) 0%, rgba(177, 151, 252, 0) 65%);
+}
+
+/* Subtle promoted-card gradient — used on the dashboard "next payment"
+   card to visually elevate it above the secondary metric cards.
+   Lime-tinted bleed from upper-right. */
+.card-promoted {
+  background:
+    radial-gradient(circle at top right, rgba(198, 255, 59, 0.08) 0%, rgba(23, 26, 33, 0) 60%),
+    linear-gradient(135deg, rgba(198, 255, 59, 0.04) 0%, rgba(23, 26, 33, 1) 60%),
+    #171A21;
+}
+
+/* Backdrop blur used on modal overlays. Real glassmorphism. */
+.modal-backdrop {
+  background: rgba(15, 17, 21, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}

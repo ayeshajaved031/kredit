@@ -1,0 +1,126 @@
+# ==============================================================
+# Render Blueprint — Kredit Backend
+# --------------------------------------------------------------
+# This file describes the full Render deployment in one place.
+# After connecting your GitHub repo to Render and pointing it at
+# this file, Render creates BOTH services automatically:
+#
+#   1. Web service:  the API itself (24/7 in prod, sleeps on free)
+#   2. Cron job:     hits the daily repayment cycle endpoint at 02:00 UTC
+#
+# Why a separate cron service?
+#   The free web tier sleeps after 15 min of inactivity. If we tried
+#   to run the repayment cycle from inside the API process via
+#   node-cron, it wouldn't fire when the service is asleep at 02:00.
+#   Render's external Cron Job triggers the API endpoint instead —
+#   waking the service if needed.
+#
+# After deploying:
+#   - Set the env vars marked `sync: false` in the Render dashboard
+#     (MONGODB_URI, SMTP credentials, etc.). JWT_SECRET is auto-generated.
+#   - Update CORS_ORIGINS once you know the Vercel URL.
+#   - Update the cron `command` URL to match your actual API URL.
+# ==============================================================
+
+services:
+  # ------ Web service: the API ------
+  - type: web
+    name: kredit-api
+    runtime: node
+    plan: free
+    region: singapore           # closest to Pakistan; change if you prefer
+    rootDir: backend
+    branch: main
+    buildCommand: npm install
+    startCommand: node src/server.js
+    healthCheckPath: /api/health
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000             # Render sets PORT automatically; harmless to define
+      - key: JWT_SECRET
+        generateValue: true     # Render generates a strong random secret once
+      - key: JWT_EXPIRES_IN
+        value: 7d
+
+      # ---- Set these manually in the Render dashboard ----
+      - key: MONGODB_URI
+        sync: false             # paste your Atlas connection string
+      - key: CORS_ORIGINS
+        sync: false             # e.g. https://kredit.vercel.app
+      - key: FRONTEND_URL
+        sync: false             # e.g. https://kredit.vercel.app
+
+      # ---- Murabaha defaults — safe to commit ----
+      - key: MURABAHA_MARKUP_PERCENT
+        value: "10"
+      - key: MURABAHA_INSTALLMENTS
+        value: "12"
+      - key: DEFAULT_CREDIT_LIMIT_PKR
+        value: "2000000"
+
+      # ---- Payment gateway: simulated for the demo ----
+      - key: PAYMENT_GATEWAY_MODE
+        value: simulated
+      - key: PAYMENT_GATEWAY_SUCCESS_RATE
+        value: "0.95"
+
+      # ---- Repayment cron is handled EXTERNALLY (see cron job below) ----
+      # We deliberately keep the in-process cron disabled because the free
+      # web tier sleeps and would miss the schedule.
+      - key: ENABLE_REPAYMENT_CRON
+        value: "false"
+      - key: REPAYMENT_REMINDER_DAYS_BEFORE
+        value: "3"
+      - key: DEFAULT_AFTER_FAILED_INSTALLMENTS
+        value: "3"
+
+      # ---- File uploads ----
+      # NOTE: Render free tier has EPHEMERAL disk — uploaded files
+      # disappear on every redeploy. Acceptable for a demo; for real
+      # production swap multer storage for Cloudinary/S3.
+      - key: UPLOAD_DIR
+        value: ./uploads
+      - key: MAX_UPLOAD_SIZE_MB
+        value: "10"
+
+      # ---- Email (set in dashboard) ----
+      - key: SMTP_HOST
+        sync: false             # e.g. sandbox.smtp.mailtrap.io
+      - key: SMTP_PORT
+        sync: false             # e.g. 2525
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_FROM
+        sync: false             # e.g. "Kredit <noreply@kredit.pk>"
+
+  # ------ Cron job: nightly repayment cycle ------
+  # Runs every day at 02:00 UTC. Hits the manual-trigger endpoint
+  # which runs reminders + auto-charges. Requires an admin token.
+  #
+  # SETUP STEPS:
+  #   1. After first deploy, log in as your admin user
+  #   2. Capture the JWT token from the browser (DevTools → Application → Local Storage → kredit_token)
+  #   3. In the Render dashboard, edit this cron job's `command`
+  #      and replace ADMIN_JWT_TOKEN with the captured value
+  #   4. Replace YOUR-SERVICE-NAME with your actual Render web URL
+  #
+  # Tokens last 7 days by default — you'll need to refresh periodically,
+  # or extend JWT_EXPIRES_IN to 30d / 90d for the cron account specifically.
+  - type: cron
+    name: kredit-repayment-cycle
+    runtime: docker
+    plan: free
+    region: singapore
+    schedule: "0 2 * * *"       # 02:00 UTC daily
+    dockerCommand: |
+      apk add --no-cache curl &&
+      curl -X POST https://YOUR-SERVICE-NAME.onrender.com/api/admin/repayments/run-daily-cycle \
+        -H "Authorization: Bearer ADMIN_JWT_TOKEN" \
+        -H "Content-Type: application/json" \
+        --max-time 120 \
+        --fail-with-body

@@ -1,0 +1,833 @@
+{
+  "info": {
+    "name": "Kredit API — Phase 1-3",
+    "description": "Auth, Startup KYC, Vendors, and Financing Requests. Set {{baseUrl}}, {{token}} (auto-saved on login), {{adminToken}} (set manually after admin login), and {{vendorId}} after listing vendors.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000/api" },
+    { "key": "token", "value": "" },
+    { "key": "adminToken", "value": "" },
+    { "key": "vendorId", "value": "" },
+    { "key": "requestId", "value": "" },
+    { "key": "startupId", "value": "" },
+    { "key": "contractId", "value": "" },
+    { "key": "scheduleId", "value": "" },
+    { "key": "paymentId", "value": "" },
+    { "key": "targetUserId", "value": "" },
+    { "key": "notificationId", "value": "" },
+    { "key": "ticketId", "value": "" },
+    { "key": "adminUserId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET /health",
+          "request": { "method": "GET", "url": "{{baseUrl}}/health" }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "POST /auth/register (startup)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Saad Ahmed\",\n  \"email\": \"saad@blockchain.pk\",\n  \"password\": \"Strong#Pass123\",\n  \"phone\": \"+923001234567\",\n  \"companyName\": \"Blockchain Labs Pvt Ltd\",\n  \"registrationType\": \"NTN\",\n  \"registrationNumber\": \"1234567\",\n  \"address\": { \"street\": \"I-9 Markaz\", \"city\": \"Islamabad\", \"province\": \"ICT\" },\n  \"industry\": \"blockchain\",\n  \"teamSize\": 12,\n  \"annualRevenuePKR\": 8000000\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "if (pm.response.code === 201) {",
+                "  pm.collectionVariables.set('token', pm.response.json().data.token);",
+                "}"
+              ],
+              "type": "text/javascript"
+            }
+          }]
+        },
+        {
+          "name": "POST /auth/login (startup)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"saad@blockchain.pk\",\n  \"password\": \"Strong#Pass123\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "if (pm.response.code === 200) {",
+                "  pm.collectionVariables.set('token', pm.response.json().data.token);",
+                "}"
+              ],
+              "type": "text/javascript"
+            }
+          }]
+        },
+        {
+          "name": "POST /auth/login (admin — saves to {{adminToken}})",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@kredit.pk\",\n  \"password\": \"Admin#Kredit2025!\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "if (pm.response.code === 200) {",
+                "  pm.collectionVariables.set('adminToken', pm.response.json().data.token);",
+                "}"
+              ],
+              "type": "text/javascript"
+            }
+          }]
+        },
+        {
+          "name": "GET /auth/me",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/auth/me"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Startup",
+      "item": [
+        {
+          "name": "GET /startup/me",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/startup/me"
+          }
+        },
+        {
+          "name": "POST /startup/me/kyc-documents (multipart)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/startup/me/kyc-documents",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "ntnCertificate", "type": "file", "src": "" },
+                { "key": "bankStatement", "type": "file", "src": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /startup/me/kyc-status",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/startup/me/kyc-status"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Vendors",
+      "item": [
+        {
+          "name": "GET /vendors (public, active only)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/vendors" },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "const v = pm.response.json().data?.vendors;",
+                "if (v && v.length > 0) {",
+                "  pm.collectionVariables.set('vendorId', v[0]._id);",
+                "  console.log('vendorId saved:', v[0]._id);",
+                "}"
+              ],
+              "type": "text/javascript"
+            }
+          }]
+        },
+        {
+          "name": "GET /vendors?category=cloud_infrastructure",
+          "request": { "method": "GET", "url": "{{baseUrl}}/vendors?category=cloud_infrastructure" }
+        },
+        {
+          "name": "GET /vendors/all (admin)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/vendors/all"
+          }
+        },
+        {
+          "name": "POST /vendors (admin — create)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/vendors",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Custom Vendor\",\n  \"category\": \"productivity\",\n  \"description\": \"A vendor we added manually\",\n  \"websiteUrl\": \"https://example.com\",\n  \"typicalAnnualDiscountPercent\": 20\n}"
+            }
+          }
+        },
+        {
+          "name": "PUT /vendors/:id (admin — update)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/vendors/{{vendorId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Updated description\",\n  \"typicalAnnualDiscountPercent\": 35\n}"
+            }
+          }
+        },
+        {
+          "name": "DELETE /vendors/:id (admin — soft deactivate)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/vendors/{{vendorId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Financing Requests",
+      "item": [
+        {
+          "name": "POST /financing-requests (multipart, startup)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/financing-requests",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "vendorId", "value": "{{vendorId}}", "type": "text" },
+                { "key": "annualAmountPKR", "value": "850000", "type": "text" },
+                { "key": "subscriptionDetails", "value": "{\"planName\":\"AWS Reserved Instance, t3.medium, 1-year\",\"planDescription\":\"All-upfront RI for production workloads\",\"coveragePeriodMonths\":12}", "type": "text" },
+                { "key": "vendorInvoice", "type": "file", "src": "" }
+              ]
+            },
+            "description": "Drag a sample PDF into the vendorInvoice field. The startup must have kycStatus='verified' (use admin endpoint to approve KYC first)."
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "if (pm.response.code === 201) {",
+                "  pm.collectionVariables.set('requestId', pm.response.json().data.request._id);",
+                "}"
+              ],
+              "type": "text/javascript"
+            }
+          }]
+        },
+        {
+          "name": "GET /financing-requests (own list)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/financing-requests"
+          }
+        },
+        {
+          "name": "GET /financing-requests?status=pending",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/financing-requests?status=pending"
+          }
+        },
+        {
+          "name": "GET /financing-requests/admin/queue (admin)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/financing-requests/admin/queue"
+          }
+        },
+        {
+          "name": "GET /financing-requests/:id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/financing-requests/{{requestId}}"
+          }
+        },
+        {
+          "name": "DELETE /financing-requests/:id (withdraw)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/financing-requests/{{requestId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Contracts",
+      "item": [
+        {
+          "name": "GET /contracts (own list)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/contracts"
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "const c = pm.response.json().data?.contracts;",
+                "if (c && c.length > 0) {",
+                "  pm.collectionVariables.set('contractId', c[0]._id);",
+                "  console.log('contractId saved:', c[0].contractId);",
+                "}"
+              ],
+              "type": "text/javascript"
+            }
+          }]
+        },
+        {
+          "name": "GET /contracts?status=draft",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/contracts?status=draft"
+          }
+        },
+        {
+          "name": "GET /contracts/:id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/contracts/{{contractId}}"
+          }
+        },
+        {
+          "name": "GET /contracts/:id/schedule",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/contracts/{{contractId}}/schedule"
+          },
+          "description": "Returns the 12-row repayment schedule. Empty array if contract is still in draft."
+        },
+        {
+          "name": "GET /contracts/:id/document",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/contracts/{{contractId}}/document"
+          },
+          "description": "Downloads the contract terms as a .txt file. After signing, also includes signing metadata."
+        },
+        {
+          "name": "POST /contracts/:id/sign",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/contracts/{{contractId}}/sign",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password\": \"Strong#Pass123\",\n  \"typedName\": \"Saad Ahmed\",\n  \"acceptedTerms\": true\n}"
+            },
+            "description": "Activates the contract: verifies password, computes signature hash, generates the 12-installment schedule, reserves credit, pays vendor (simulated), notifies + emails. Atomic — vendor payment failure rolls everything back."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "GET /payments (own list)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/payments"
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "const p = pm.response.json().data?.payments;",
+                "if (p && p.length > 0) {",
+                "  pm.collectionVariables.set('paymentId', p[0]._id);",
+                "}"
+              ],
+              "type": "text/javascript"
+            }
+          }]
+        },
+        {
+          "name": "GET /payments?status=successful",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/payments?status=successful"
+          }
+        },
+        {
+          "name": "GET /payments/:id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/payments/{{paymentId}}"
+          }
+        },
+        {
+          "name": "GET /payments/:id/receipt (download)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/payments/{{paymentId}}/receipt"
+          },
+          "description": "Downloads payment receipt as plain text. Only works for status=successful payments."
+        },
+        {
+          "name": "POST /payments/pay/:scheduleId (manual pay)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/payments/pay/{{scheduleId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"method\": \"jazzcash\"\n}"
+            },
+            "description": "Pay an installment manually. {{scheduleId}} is from GET /contracts/:id/schedule. Methods: jazzcash | easypaisa | payfast | bank_transfer."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "GET /notifications",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/notifications"
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "const n = pm.response.json().data?.notifications;",
+                "if (n && n.length > 0) {",
+                "  pm.collectionVariables.set('notificationId', n[0]._id);",
+                "}"
+              ],
+              "type": "text/javascript"
+            }
+          }]
+        },
+        {
+          "name": "GET /notifications?unreadOnly=true",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/notifications?unreadOnly=true"
+          }
+        },
+        {
+          "name": "GET /notifications/unread-count",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/notifications/unread-count"
+          },
+          "description": "Lightweight endpoint for the bell-icon badge."
+        },
+        {
+          "name": "PATCH /notifications/:id/read",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/notifications/{{notificationId}}/read"
+          }
+        },
+        {
+          "name": "PATCH /notifications/read-all",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/notifications/read-all"
+          }
+        },
+        {
+          "name": "DELETE /notifications/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/notifications/{{notificationId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Support Tickets",
+      "item": [
+        {
+          "name": "POST /tickets (multipart, startup)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/tickets",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "subject", "value": "Payment failed for installment 3", "type": "text" },
+                { "key": "description", "value": "My JazzCash payment was declined three times in a row. The amount is correct and balance is sufficient. Please advise.", "type": "text" },
+                { "key": "category", "value": "payment_failure", "type": "text" },
+                { "key": "priority", "value": "high", "type": "text" },
+                { "key": "attachment", "type": "file", "src": "" }
+              ]
+            },
+            "description": "Optional: drag a screenshot into the attachment field."
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "if (pm.response.code === 201) {",
+                "  pm.collectionVariables.set('ticketId', pm.response.json().data.ticket._id);",
+                "}"
+              ],
+              "type": "text/javascript"
+            }
+          }]
+        },
+        {
+          "name": "GET /tickets (own list)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/tickets"
+          }
+        },
+        {
+          "name": "GET /tickets?status=open (admin sees all)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/tickets?status=open"
+          }
+        },
+        {
+          "name": "GET /tickets/:id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/tickets/{{ticketId}}"
+          }
+        },
+        {
+          "name": "POST /tickets/:id/replies (startup or admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/tickets/{{ticketId}}/replies",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "message", "value": "Thanks for the update — the issue still persists.", "type": "text" },
+                { "key": "attachment", "type": "file", "src": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "PATCH /tickets/:id/status (admin only)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/tickets/{{ticketId}}/status",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"resolved\"\n}"
+            }
+          }
+        },
+        {
+          "name": "PATCH /tickets/:id/assign (admin only)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/tickets/{{ticketId}}/assign",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"assignedTo\": \"{{adminUserId}}\"\n}"
+            },
+            "description": "Pass null to unassign."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "GET /admin/dashboard/summary",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/admin/dashboard/summary"
+          }
+        },
+        {
+          "name": "GET /admin/startups (?kycStatus=under_review)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/admin/startups?kycStatus=under_review"
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "const s = pm.response.json().data?.startups;",
+                "if (s && s.length > 0) {",
+                "  pm.collectionVariables.set('startupId', s[0]._id);",
+                "}"
+              ],
+              "type": "text/javascript"
+            }
+          }]
+        },
+        {
+          "name": "GET /admin/startups/:id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/admin/startups/{{startupId}}"
+          }
+        },
+        {
+          "name": "POST /admin/startups/:id/kyc/approve",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/admin/startups/{{startupId}}/kyc/approve",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"approvedCreditLimit\": 2000000,\n  \"adminNotes\": \"NTN and bank statement verified. Approved per standard policy.\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST /admin/startups/:id/kyc/reject",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/admin/startups/{{startupId}}/kyc/reject",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Bank statement is for the wrong company. Please re-upload statement matching the registered NTN.\"\n}"
+            }
+          }
+        },
+        {
+          "name": "PUT /admin/startups/:id/credit-limit",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/admin/startups/{{startupId}}/credit-limit",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"approvedCreditLimit\": 5000000,\n  \"adminNotes\": \"Increased after Q3 revenue review\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST /admin/financing-requests/:id/approve",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/admin/financing-requests/{{requestId}}/approve",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"markupPercent\": 10,\n  \"adminNotes\": \"Standard markup. Vendor invoice verified.\"\n}"
+            },
+            "description": "Generates the Murabaha contract and links it to the request. Returns both the updated request and the new contract."
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "if (pm.response.code === 201) {",
+                "  const c = pm.response.json().data.contract;",
+                "  pm.collectionVariables.set('contractId', c._id);",
+                "  console.log('contractId saved:', c.contractId);",
+                "}"
+              ],
+              "type": "text/javascript"
+            }
+          }]
+        },
+        {
+          "name": "POST /admin/financing-requests/:id/reject",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/admin/financing-requests/{{requestId}}/reject",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Vendor invoice does not match the company name on file. Please re-submit.\"\n}"
+            }
+          }
+        },
+        {
+          "name": "GET /admin/users (?role=startup&status=blocked)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/admin/users"
+          }
+        },
+        {
+          "name": "POST /admin/users/:id/block",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/admin/users/{{targetUserId}}/block",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Multiple failed payments and no response to support tickets.\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST /admin/users/:id/unblock",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/admin/users/{{targetUserId}}/unblock"
+          }
+        },
+        {
+          "name": "GET /admin/audit-logs",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/admin/audit-logs"
+          }
+        },
+        {
+          "name": "GET /admin/reports/portfolio-overview",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/admin/reports/portfolio-overview"
+          },
+          "description": "One-shot dashboard snapshot: contracts by status, money deployed/collected/outstanding, KYC funnel, default rate."
+        },
+        {
+          "name": "GET /admin/reports/monthly-disbursement?months=12",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/admin/reports/monthly-disbursement?months=12"
+          },
+          "description": "Time series for charts: vendor disbursements + startup collections per month. Gap-filled with zeros so charts render cleanly. months=1..36."
+        },
+        {
+          "name": "GET /admin/reports/repayment-performance",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/admin/reports/repayment-performance"
+          },
+          "description": "On-time vs late payment rates, average days late, current overdue stats, contract default + completion rates."
+        },
+        {
+          "name": "GET /admin/reports/top-vendors?limit=10",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/admin/reports/top-vendors?limit=10"
+          },
+          "description": "Vendors ranked by total financed volume, with active/completed/defaulted contract counts per vendor."
+        },
+        {
+          "name": "GET /admin/reports/audit-summary?days=30",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/admin/reports/audit-summary?days=30"
+          },
+          "description": "Compliance view: counts of admin actions in the last N days, plus top actors by activity."
+        },
+        {
+          "name": "POST /admin/repayments/run-daily-cycle",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/admin/repayments/run-daily-cycle"
+          },
+          "description": "Manually triggers the daily repayment cycle: sends reminders for installments due in N days, auto-charges installments due today or earlier. Returns stats. Useful for demos."
+        }
+      ]
+    }
+  ]
+}
